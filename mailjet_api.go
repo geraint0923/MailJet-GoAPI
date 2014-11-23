@@ -77,8 +77,28 @@ func (m *MailJet) addContact(addr string) int {
 	return int(retVal)
 }
 
+func (m *MailJet) getContactID(addr string) int {
+	req, _ := http.NewRequest("GET", "https://api.mailjet.com/v3/REST/contact/"+addr, nil)
+	req.SetBasicAuth(m.username, m.password)
+	client := &http.Client{}
+	resp, _ := client.Do(req)
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(body))
+	jsonObj := parseJSON(string(body))
+	if jsonObj["Data"] == nil {
+		return -1
+	}
+	retVal := jsonObj["Data"].([]interface{})[0].(map[string]interface{})["ID"].(float64)
+	return int(retVal)
+}
+
 func (m *MailJet) AddToGroup(listId int, addr string) {
 	res := m.addContact(addr)
+	if res < 0 {
+		return
+	}
+	res = getContactID(addr)
 	if res < 0 {
 		return
 	}
@@ -90,7 +110,7 @@ func (m *MailJet) AddToGroup(listId int, addr string) {
 	resp, _ := client.Do(req)
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(body))
+	//fmt.Println(string(body))
 	/*
 		jsonObj := parseJSON(string(body))
 		if jsonObj["Data"] == nil {
@@ -107,6 +127,6 @@ func (m *MailJet) SendToUser(mail *Mail) {
 
 func main() {
 	mail := InitMailJet("3bfc81a965fbc505da2950df6e2a5a4b", "6a26367d687abc1c4d543483d1870365")
-	mail.AddToGroup(18, "0923@gmail.com")
-	//fmt.Println("Result: " + strconv.Itoa(res))
+	res := mail.getContactID("0923@gmail.com")
+	fmt.Println("Result: " + strconv.Itoa(res))
 }
