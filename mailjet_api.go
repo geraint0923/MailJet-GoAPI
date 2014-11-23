@@ -169,7 +169,15 @@ func (m *MailJet) AddHtml(listID int, htmlContent string){
 
 
 
-func (m *MailJet) SendToUser(listID int) {
+func (m *MailJet) SendToUser(addr string, htmlContent string) {
+        var jsonStr = []byte("{\"from\":\"yanghu@u.northwestern.edu\", \"to\":" + addr + ",\"subject\":\"Welcome!\" ,\"html\" :" + htmlContent + "  }")
+
+	req, _ := http.NewRequest("POST", "https://api.mailjet.com/v3/send/message", bytes.NewBuffer(jsonStr))
+       	req.Header.Set("Content-Type", "application/json")
+	req.SetBasicAuth(m.username, m.password)
+	client := &http.Client{}
+	resp, _ := client.Do(req)
+	defer resp.Body.Close()
 }
 
 func main() {
@@ -180,7 +188,9 @@ func main() {
         
         newsID := mail.CreateNews(27)
        	fmt.Println("NewsID: " + strconv.Itoa(newsID))
-        mail.AddHtml(newsID, "<p>hello world</p>")
+        mail.AddHtml(newsID, "<p>hello world</p> <img src=\"http://www.northwestern.edu/newscenter/images/toplevel2012/2014/11/tf1029.jpg\">")
         mail.SendToGroup(newsID)
-     
+        
+        mail.SendToUser("yanghu2019@u.northwestern.edu", "<p>hello world</p> <img src=\"http://www.northwestern.edu/newscenter/images/toplevel2012/2014/11/tf1029.jpg\">")
+
 }
