@@ -59,6 +59,17 @@ func (m *MailJet) BuildGroup(name string) int {
 	return int(retVal)
 }
 
+func (m *MailJet) DeleteGroup(groupId int) {
+	req, _ := http.NewRequest("DELETE", "https://api.mailjet.com/v3/REST/contactslist/"+ strconv.Itoa(groupId), nil )
+	req.SetBasicAuth(m.username, m.password)
+	client := &http.Client{}
+	resp, _ := client.Do(req)
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(body))
+}
+
+
 func (m *MailJet) addContact(addr string) int {
 	var jsonStr = []byte("{\"Email\":" + addr + "}")
 	req, _ := http.NewRequest("POST", "https://api.mailjet.com/v3/REST/contact", bytes.NewBuffer(jsonStr))
@@ -68,7 +79,7 @@ func (m *MailJet) addContact(addr string) int {
 	resp, _ := client.Do(req)
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
-//	fmt.Println(string(body))
+	fmt.Println(string(body))
 	jsonObj := parseJSON(string(body))
 	if jsonObj["Data"] == nil {
 		return -1
@@ -95,13 +106,12 @@ func (m *MailJet) getContactID(addr string) int {
 
 func (m *MailJet) AddToGroup(listId int, addr string) {
 	res := m.addContact(addr)
+	fmt.Println("new created contact id = " + strconv.Itoa(res))
+        fmt.Println(addr)
 	if res < 0 {
 		return
 	}
-//	res = m.getContactID(addr)
-//	if res < 0 {
-//		return
-//	}
+	
 	var jsonStr = []byte("{\"ContactID\":" + strconv.Itoa(res) + ",\"ListID\":" + strconv.Itoa(listId) + ",\"IsActive\": true}")
 	req, _ := http.NewRequest("POST", "https://api.mailjet.com/v3/REST/listrecipient", bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
@@ -129,7 +139,7 @@ func (m *MailJet) CreateNews(listID int) int{
 	defer resp.Body.Close()
 
       	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(body))
+//	fmt.Println(string(body))
 	jsonObj := parseJSON(string(body))
 	if jsonObj["Data"] == nil {
 		return -1
@@ -150,8 +160,8 @@ func (m *MailJet) SendToGroup(newsId int) {
 	resp, _ := client.Do(req)
 	defer resp.Body.Close()
 
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(body))
+	//body, _ := ioutil.ReadAll(resp.Body)
+//	fmt.Println(string(body))
 	
 
 }
@@ -170,14 +180,14 @@ func (m *MailJet) AddHtml(listID int, htmlContent string){
 
 
 func (m *MailJet) SendToUser(addr string, htmlContent string) {
-        var jsonStr = []byte("{\"from\":\"yanghu@u.northwestern.edu\", \"to\":" + addr + ",\"subject\":\"Welcome!\" ,\"html\" :" + htmlContent + "  }")
-
-	req, _ := http.NewRequest("POST", "https://api.mailjet.com/v3/send/message", bytes.NewBuffer(jsonStr))
-       	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth(m.username, m.password)
-	client := &http.Client{}
-	resp, _ := client.Do(req)
-	defer resp.Body.Close()
+        groupID := m.BuildGroup("temp")
+        m.AddToGroup(groupID, addr)
+	newsID := m.CreateNews(groupID)
+       	fmt.Println("NewsID: " + strconv.Itoa(newsID))
+        m.AddHtml(newsID, htmlContent)
+        m.SendToGroup(newsID)
+        m.DeleteGroup(groupID)
+        fmt.Println("=====================")
 }
 
 func main() {
@@ -186,11 +196,19 @@ func main() {
        // res := mail.getContactID("yanghu2019@u.northwestern.edu")
 //	fmt.Println("Result: " + strconv.Itoa(res))
         
-        newsID := mail.CreateNews(27)
-       	fmt.Println("NewsID: " + strconv.Itoa(newsID))
-        mail.AddHtml(newsID, "<p>hello world</p> <img src=\"http://www.northwestern.edu/newscenter/images/toplevel2012/2014/11/tf1029.jpg\">")
-        mail.SendToGroup(newsID)
+       // newsID := mail.CreateNews(27)
+       //	fmt.Println("NewsID: " + strconv.Itoa(newsID))
+      //  mail.AddHtml(newsID, "<p>hello world</p> <img src=\"http://www.northwestern.edu/newscenter/images/toplevel2012/2014/11/tf1029.jpg\">")
+       // mail.SendToGroup(newsID)
         
-        mail.SendToUser("yanghu2019@u.northwestern.edu", "<p>hello world</p> <img src=\"http://www.northwestern.edu/newscenter/images/toplevel2012/2014/11/tf1029.jpg\">")
+       // html_req, _ := http.NewRequest("GET", "http://104.236.41.69/contact.html", nil)
+//	client := &http.Client{}
+//	resp, _ := client.Do(html_req)
+//	defer resp.Body.Close()
+  //     	body, _ := ioutil.ReadAll(resp.Body)
+    //    htmlContent := string(body)
+      //  fmt.Println(htmlContent)
+        mail.SendToUser("yanghu2019@gmail.com", "<p>hello! world! </p>") 
+        //mail.SendToUser("yanghu2019@u.northwestern.edu", "<p>hello world</p> <img src=\"http://www.northwestern.edu/newscenter/images/toplevel2012/2014/11/tf1029.jpg\">")
 
 }
